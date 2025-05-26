@@ -1,14 +1,20 @@
+const express = require('express');
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
-const http = require('http');
 const mime = require('mime');
 
+const app = express();
+const PORT = process.env.PORT || 8080;
 const SESSIONS_DIR = path.join(__dirname, 'sessions');
-if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR);
 
-async function startBot() {
+if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR);
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+
+app.post('/start-bot', async (req, res) => {
+  const phone = req.body.phone;
   const sessionId = 'popkid-' + crypto.randomBytes(6).toString('hex');
   const authDir = path.join(SESSIONS_DIR, sessionId);
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
@@ -23,36 +29,25 @@ async function startBot() {
   sock.ev.on('connection.update', (update) => {
     const { connection } = update;
     if (connection === 'open') {
-      console.log('\n✅ WhatsApp Linked!');
-      const credsPath = path.join(authDir, 'creds.json');
-      const fileUrl = generateDownloadLink(credsPath, sessionId);
-      console.log(`\nDownload Link:\npopkid~scl/fi/${fileUrl}`);
-    }
-  });
-}
-
-function generateDownloadLink(filePath, sessionId) {
-  const randomKey = crypto.randomBytes(8).toString('hex');
-  const link = `${sessionId}.json?rlkey=${randomKey}&dl=0`;
-
-  const server = http.createServer((req, res) => {
-    const url = decodeURIComponent(req.url.split('?')[0].slice(1));
-    const file = path.join(SESSIONS_DIR, url);
-    if (fs.existsSync(file)) {
-      const contentType = mime.getType(file) || 'application/json';
-      res.writeHead(200, { 'Content-Type': contentType });
-      fs.createReadStream(file).pipe(res);
-    } else {
-      res.writeHead(404);
-      res.end('File Not Found');
+      const fileUrl = `${req.protocol}://${req.get('host')}/sessions/${sessionId}/creds.json`;
+      console.log(`\nSession Generated for ${phone}: ${fileUrl}`);
     }
   });
 
-  server.listen(8080, () => {
-    console.log(`\nServer running: http://localhost:8080/${link}`);
-  });
+  res.json({ message: 'Session started. Please scan the QR code in terminal.' });
+});
 
-  return link;
-}
+app.get('/sessions/:sessionId/creds.json', (req, res) => {
+  const file = path.join(SESSIONS_DIR, req.params.sessionId, 'creds.json');
+  if (fs.existsSync(file)) {
+    const contentType = mime.getType(file) || 'application/json';
+    res.setHeader('Content-Type', contentType);
+    fs.createReadStream(file).pipe(res);
+  } else {
+    res.status(404).send('File not found');
+  }
+});
 
-startBot();
+app.listen(PORT, () => {
+  console.log(`Server is running at http://localhost:${PORT}`);
+});
