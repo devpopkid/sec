@@ -1,0 +1,15 @@
+{
+  "name": "popkid-session-generator",
+  "version": "1.0.0",
+  "description": "Generate WhatsApp session files using Baileys and custom session ID.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Popkid Md",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "mime": "^3.0.0"
+  }
+}
