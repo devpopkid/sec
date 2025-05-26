@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Popkid Session Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1f1f1f;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+    button {
+      background-color: #00bfa5;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>Popkid Session Generator</h2>
+  <form id="sessionForm">
+    <input type="text" id="phone" placeholder="Enter Phone Number" required />
+    <br />
+    <button type="submit">Generate Session</button>
+  </form>
+  <div id="output"></div>
+
+  <script>
+    document.getElementById('sessionForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      const phone = document.getElementById('phone').value;
+      document.getElementById('output').innerHTML = 
+        '<p>Generating session for: ' + phone + '...</p>' +
+        '<p>Please check your terminal to scan the QR code.</p>';
+
+      fetch('http://localhost:8080/start-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone })
+      }).then(response => response.json())
+        .then(data => {
+          if (data.url) {
+            document.getElementById('output').innerHTML += '<p>Download: <a href="' + data.url + '">' + data.url + '</a></p>';
+          }
+        });
+    });
+  </script>
+</body>
+</html>
